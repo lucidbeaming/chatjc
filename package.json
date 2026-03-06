@@ -16,7 +16,7 @@
   "dependencies": {
     "@hono/node-server": "^1.19.11",
     "@hono/zod-validator": "^0.7.6",
-"@langchain/core": "^1.1.31",
+    "@langchain/core": "^1.1.31",
     "@langchain/mistralai": "^1.0.7",
     "@langchain/textsplitters": "^1.0.1",
     "better-sqlite3": "^12.6.2",
@@ -32,6 +32,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.3.5",
     "@types/uuid": "^10.0.0",
+    "cheerio": "^1.2.0",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
