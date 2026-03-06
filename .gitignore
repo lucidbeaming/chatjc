@@ -36,6 +36,11 @@ out/
 *.swo
 *~
 
+# Claude / Cursor skills and rules
+.cursor/
+.claude/
+skills/
+
 # Optional npm cache
 .npm
 
