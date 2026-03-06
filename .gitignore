@@ -58,3 +58,9 @@ coverage/
 tmp/
 temp/
 *.tmp
+
+# SQLite database
+data/
+
+# Live context data (personal resume, etc.)
+context/live/
