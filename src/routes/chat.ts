@@ -71,7 +71,11 @@ chat.post("/", zValidator("json", chatRequestSchema), async (c) => {
 
     if (isProduction) {
       logger.info(
-        { sessionId, inputLength: sanitized.length, responseLength: response.length },
+        {
+          sessionId,
+          inputLength: sanitized.length,
+          responseLength: response.length,
+        },
         "Chat response generated",
       );
     } else {
