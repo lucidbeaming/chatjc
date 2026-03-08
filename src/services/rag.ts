@@ -1,13 +1,16 @@
 import { readFileSync, readdirSync } from "fs";
-import { join } from "path";
+import { join, resolve } from "path";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { Document } from "@langchain/core/documents";
 import { VectorStore } from "@langchain/core/vectorstores";
 import type { EmbeddingsInterface } from "@langchain/core/embeddings";
-import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
+import {
+  ChatPromptTemplate,
+  MessagesPlaceholder,
+} from "@langchain/core/prompts";
 import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import { StringOutputParser } from "@langchain/core/output_parsers";
-import { RunnableSequence, RunnablePassthrough } from "@langchain/core/runnables";
+import { RunnableSequence } from "@langchain/core/runnables";
 import { getChatModel, getEmbeddings } from "./llm.js";
 import { appConfig } from "../config/index.js";
 import { logger } from "../logger/index.js";
@@ -41,7 +44,7 @@ class InMemoryVectorStore extends VectorStore {
 
   async similaritySearchVectorWithScore(
     query: number[],
-    k: number
+    k: number,
   ): Promise<[Document, number][]> {
     const scores = this.vectors.map((vec, idx) => ({
       idx,
@@ -53,7 +56,7 @@ class InMemoryVectorStore extends VectorStore {
 
   static async fromDocuments(
     docs: Document[],
-    embeddings: EmbeddingsInterface
+    embeddings: EmbeddingsInterface,
   ): Promise<InMemoryVectorStore> {
     const store = new InMemoryVectorStore(embeddings, {});
     await store.addDocuments(docs);
@@ -62,7 +65,9 @@ class InMemoryVectorStore extends VectorStore {
 }
 
 function cosineSimilarity(a: number[], b: number[]): number {
-  let dot = 0, magA = 0, magB = 0;
+  let dot = 0,
+    magA = 0,
+    magB = 0;
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
     magA += a[i] * a[i];
@@ -77,7 +82,10 @@ let retriever: ReturnType<VectorStore["asRetriever"]> | null = null;
 
 function loadMarkdownFiles(contextDir: string): string[] {
   const files = readdirSync(contextDir).filter((f) => f.endsWith(".md"));
-  logger.info({ count: files.length, dir: contextDir }, "Loading context files");
+  logger.info(
+    { count: files.length, dir: contextDir },
+    "Loading context files",
+  );
 
   return files.map((file) => {
     const content = readFileSync(join(contextDir, file), "utf-8");
@@ -87,7 +95,7 @@ function loadMarkdownFiles(contextDir: string): string[] {
 }
 
 export async function initializeRAG(contextDir?: string): Promise<void> {
-  const dir = contextDir ?? join(process.cwd(), appConfig.CONTEXT_DIR);
+  const dir = contextDir ?? resolve(process.cwd(), appConfig.CONTEXT_DIR);
   const documents = loadMarkdownFiles(dir);
 
   if (documents.length === 0) {
@@ -105,7 +113,7 @@ export async function initializeRAG(contextDir?: string): Promise<void> {
 
   const vectorStore = await InMemoryVectorStore.fromDocuments(
     docs,
-    getEmbeddings()
+    getEmbeddings(),
   );
 
   retriever = vectorStore.asRetriever({ k: appConfig.RAG_TOP_K });
@@ -118,12 +126,16 @@ export async function initializeRAG(contextDir?: string): Promise<void> {
 
   chain = RunnableSequence.from([
     {
-      context: async (input: { input: string; chat_history: (HumanMessage | AIMessage)[] }) => {
+      context: async (input: {
+        input: string;
+        chat_history: (HumanMessage | AIMessage)[];
+      }) => {
         const docs = await retriever!.invoke(input.input);
         return docs.map((d) => d.pageContent).join("\n\n");
       },
       input: (input: { input: string }) => input.input,
-      chat_history: (input: { chat_history: (HumanMessage | AIMessage)[] }) => input.chat_history,
+      chat_history: (input: { chat_history: (HumanMessage | AIMessage)[] }) =>
+        input.chat_history,
     },
     prompt,
     getChatModel(),
@@ -135,7 +147,7 @@ export async function initializeRAG(contextDir?: string): Promise<void> {
 
 export async function queryRAG(
   question: string,
-  history: Message[] = []
+  history: Message[] = [],
 ): Promise<string> {
   if (!chain) {
     throw new Error("RAG not initialized. Call initializeRAG() first.");
@@ -144,7 +156,7 @@ export async function queryRAG(
   const chatHistory = history.map((msg) =>
     msg.role === "user"
       ? new HumanMessage(msg.content)
-      : new AIMessage(msg.content)
+      : new AIMessage(msg.content),
   );
 
   return chain.invoke({

@@ -5,6 +5,7 @@ config();
 
 const envSchema = z.object({
   MISTRAL_API_KEY: z.string().min(1, "MISTRAL_API_KEY is required"),
+  API_KEY: z.string().min(1, "API_KEY is required"),
   PORT: z.coerce.number().default(3000),
   HOST: z.string().default("0.0.0.0"),
   DB_PATH: z.string().default("./data/chatjc.db"),

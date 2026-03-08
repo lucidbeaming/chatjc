@@ -26,7 +26,10 @@ function getClientIp(c: Context): string {
   );
 }
 
-export async function rateLimiter(c: Context, next: Next): Promise<Response | void> {
+export async function rateLimiter(
+  c: Context,
+  next: Next,
+): Promise<Response | void> {
   const ip = getClientIp(c);
   const now = Date.now();
   const windowMs = appConfig.RATE_LIMIT_WINDOW_MS;

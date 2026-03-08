@@ -1,7 +1,7 @@
 {
   "name": "chatjc",
-  "version": "1.0.0",
-  "description": "MCP for chatbot on joshuacurry.dev",
+  "version": "1.1.0",
+  "description": "MCP for chatbot about a developer's work history and context",
   "license": "ISC",
   "author": "",
   "type": "module",
@@ -11,7 +11,13 @@
     "build": "tsup src/index.ts --format esm --dts --clean",
     "start": "node dist/index.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "chat": "tsx scripts/chat-cli.ts",
+    "generate-key": "tsx scripts/generate-api-key.ts",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write 'src/**/*.ts'",
+    "format:check": "prettier --check 'src/**/*.ts'"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.11",
@@ -29,13 +35,18 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.3.5",
     "@types/uuid": "^10.0.0",
     "cheerio": "^1.2.0",
+    "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.1",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.1",
     "vitest": "^4.0.18"
   }
 }

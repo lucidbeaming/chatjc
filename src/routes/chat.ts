@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { v4 as uuidv4 } from "uuid";
+
 import {
   createSession,
   getSession,
@@ -16,6 +16,13 @@ import {
   sanitizeInput,
 } from "../services/guardrails.js";
 import { logger } from "../logger/index.js";
+
+// Privacy: message content is only logged in non-production environments.
+// In production, only metadata (session ID, message length) is logged.
+// Full message content is always persisted to SQLite for session continuity
+// regardless of environment. The chat CLI script logs messages locally
+// via console output, independent of server-side logging.
+const isProduction = process.env.NODE_ENV === "production";
 
 const chatRequestSchema = z.object({
   session_id: z.string().uuid().optional(),
@@ -62,7 +69,17 @@ chat.post("/", zValidator("json", chatRequestSchema), async (c) => {
 
     addMessage(sessionId, "assistant", response, body.source);
 
-    logger.info({ sessionId, inputLength: sanitized.length }, "Chat response generated");
+    if (isProduction) {
+      logger.info(
+        { sessionId, inputLength: sanitized.length, responseLength: response.length },
+        "Chat response generated",
+      );
+    } else {
+      logger.info(
+        { sessionId, message: sanitized, response },
+        "Chat response generated",
+      );
+    }
 
     return c.json({
       session_id: sessionId,
@@ -70,6 +87,7 @@ chat.post("/", zValidator("json", chatRequestSchema), async (c) => {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
+    // Privacy: never log user message content in error output
     logger.error({ error, sessionId }, "RAG query failed");
     return c.json({ error: "Failed to generate response" }, 500);
   }

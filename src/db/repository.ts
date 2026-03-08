@@ -4,7 +4,7 @@ import type { Message, Session } from "../types/index.js";
 
 export function createSession(
   source: string,
-  ipAddress?: string | null
+  ipAddress?: string | null,
 ): Session {
   const db = getDb();
   const id = uuidv4();
@@ -12,24 +12,30 @@ export function createSession(
 
   db.prepare(
     `INSERT INTO sessions (id, ip_address, source, created_at, last_active_at)
-     VALUES (?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?)`,
   ).run(id, ipAddress ?? null, source, now, now);
 
-  return { id, ip_address: ipAddress ?? null, source, created_at: now, last_active_at: now };
+  return {
+    id,
+    ip_address: ipAddress ?? null,
+    source,
+    created_at: now,
+    last_active_at: now,
+  };
 }
 
 export function getSession(sessionId: string): Session | undefined {
   const db = getDb();
-  return db
-    .prepare("SELECT * FROM sessions WHERE id = ?")
-    .get(sessionId) as Session | undefined;
+  return db.prepare("SELECT * FROM sessions WHERE id = ?").get(sessionId) as
+    | Session
+    | undefined;
 }
 
 export function touchSession(sessionId: string): void {
   const db = getDb();
   db.prepare("UPDATE sessions SET last_active_at = ? WHERE id = ?").run(
     new Date().toISOString(),
-    sessionId
+    sessionId,
   );
 }
 
@@ -38,7 +44,7 @@ export function addMessage(
   role: "user" | "assistant",
   content: string,
   source: string,
-  ipAddress?: string | null
+  ipAddress?: string | null,
 ): Message {
   const db = getDb();
   const id = uuidv4();
@@ -46,7 +52,7 @@ export function addMessage(
 
   db.prepare(
     `INSERT INTO messages (id, session_id, timestamp, role, content, ip_address, source)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
   ).run(id, sessionId, timestamp, role, content, ipAddress ?? null, source);
 
   return {
@@ -63,13 +69,13 @@ export function addMessage(
 
 export function getSessionMessages(
   sessionId: string,
-  limit: number = 20
+  limit: number = 20,
 ): Message[] {
   const db = getDb();
   return db
     .prepare(
       `SELECT * FROM messages WHERE session_id = ?
-       ORDER BY timestamp ASC LIMIT ?`
+       ORDER BY timestamp ASC LIMIT ?`,
     )
     .all(sessionId, limit) as Message[];
 }
