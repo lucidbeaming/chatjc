@@ -18,31 +18,30 @@ setInterval(() => {
   }
 }, 60000);
 
-function getClientIp(c: Context): string {
-  return (
-    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
-    c.req.header("x-real-ip") ??
-    "unknown"
-  );
+// Rate limit by API key (validated upstream by apiKeyAuth middleware)
+// rather than IP headers which can be spoofed.
+function getRateLimitKey(c: Context): string {
+  return c.req.header("x-api-key") ?? "unknown";
 }
 
 export async function rateLimiter(
   c: Context,
   next: Next,
 ): Promise<Response | void> {
-  const ip = getClientIp(c);
+  const key = getRateLimitKey(c);
   const now = Date.now();
   const windowMs = appConfig.RATE_LIMIT_WINDOW_MS;
   const max = appConfig.RATE_LIMIT_MAX;
 
-  let entry = store.get(ip);
+  let entry = store.get(key);
 
+  // Atomic: reset window if expired, then increment in one step
   if (!entry || now > entry.resetAt) {
-    entry = { count: 0, resetAt: now + windowMs };
-    store.set(ip, entry);
+    entry = { count: 1, resetAt: now + windowMs };
+    store.set(key, entry);
+  } else {
+    entry.count++;
   }
-
-  entry.count++;
 
   c.header("X-RateLimit-Limit", String(max));
   c.header("X-RateLimit-Remaining", String(Math.max(0, max - entry.count)));

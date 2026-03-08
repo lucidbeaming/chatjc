@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import {
   corsMiddleware,
   secureHeadersMiddleware,
+  csrfProtection,
 } from "./middleware/security.js";
 import { apiKeyAuth } from "./middleware/apiKeyAuth.js";
 import { rateLimiter } from "./middleware/rateLimiter.js";
@@ -14,6 +15,7 @@ const app = new Hono();
 app.use("*", corsMiddleware);
 app.use("*", secureHeadersMiddleware);
 app.use("*", requestLogger);
+app.use("/api/chat/*", csrfProtection);
 app.use("/api/chat/*", apiKeyAuth);
 app.use("/api/chat/*", rateLimiter);
 

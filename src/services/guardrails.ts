@@ -19,6 +19,19 @@ const INJECTION_PATTERNS = [
   /new\s+instructions?\s*:/i,
 ];
 
+// Normalize unicode confusables and whitespace variations before
+// running injection detection to prevent bypass via lookalike characters
+// or irregular spacing (e.g. "ｉｇｎｏｒｅ", "ignore   all").
+function normalizeForDetection(input: string): string {
+  return (
+    input
+      // Normalize unicode to ASCII-compatible form (e.g. fullwidth → ASCII)
+      .normalize("NFKC")
+      // Collapse multiple whitespace characters into a single space
+      .replace(/\s+/g, " ")
+  );
+}
+
 export function validateInput(message: string): GuardrailResult {
   if (!message || message.trim().length === 0) {
     return { passed: false, reason: "Message cannot be empty" };
@@ -31,8 +44,10 @@ export function validateInput(message: string): GuardrailResult {
     };
   }
 
+  const normalized = normalizeForDetection(message);
+
   for (const pattern of INJECTION_PATTERNS) {
-    if (pattern.test(message)) {
+    if (pattern.test(normalized)) {
       logger.warn(
         { pattern: pattern.source },
         "Prompt injection attempt detected",

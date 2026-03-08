@@ -8,6 +8,7 @@ import {
   touchSession,
   addMessage,
   getSessionMessages,
+  hashApiKey,
 } from "../db/repository.js";
 import { queryRAG } from "../services/rag.js";
 import {
@@ -39,12 +40,24 @@ chat.post("/", zValidator("json", chatRequestSchema), async (c) => {
     c.req.header("x-real-ip") ??
     null;
 
+  // Validate raw input first to prevent bypassing injection detection
+  // via HTML tags or control characters that sanitization would strip
+  const rawCheck = validateInput(body.message);
+  if (!rawCheck.passed) {
+    return c.json({ error: rawCheck.reason }, 400);
+  }
+
   const sanitized = sanitizeInput(body.message);
 
-  const inputCheck = validateInput(sanitized);
-  if (!inputCheck.passed) {
-    return c.json({ error: inputCheck.reason }, 400);
+  const sanitizedCheck = validateInput(sanitized);
+  if (!sanitizedCheck.passed) {
+    return c.json({ error: sanitizedCheck.reason }, 400);
   }
+
+  // Bind sessions to API key hash to prevent session enumeration/hijacking.
+  // Only the client that created a session can reuse it.
+  const apiKey = c.req.header("x-api-key") ?? "";
+  const keyHash = hashApiKey(apiKey);
 
   let sessionId = body.session_id;
 
@@ -53,9 +66,12 @@ chat.post("/", zValidator("json", chatRequestSchema), async (c) => {
     if (!existing) {
       return c.json({ error: "Invalid session_id" }, 400);
     }
+    if (existing.api_key_hash && existing.api_key_hash !== keyHash) {
+      return c.json({ error: "Invalid session_id" }, 403);
+    }
     touchSession(sessionId);
   } else {
-    const session = createSession(body.source, ipAddress);
+    const session = createSession(body.source, ipAddress, keyHash);
     sessionId = session.id;
   }
 

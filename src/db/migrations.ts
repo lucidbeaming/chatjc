@@ -4,6 +4,7 @@ export function runMigrations(db: Database.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
+      api_key_hash TEXT,
       ip_address TEXT,
       source TEXT NOT NULL,
       created_at TEXT DEFAULT (datetime('now')),
@@ -25,4 +26,12 @@ export function runMigrations(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages(session_id);
     CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
   `);
+
+  // Add api_key_hash column to existing sessions tables (v1.1.0)
+  const columns = db.prepare("PRAGMA table_info(sessions)").all() as {
+    name: string;
+  }[];
+  if (!columns.some((col) => col.name === "api_key_hash")) {
+    db.exec("ALTER TABLE sessions ADD COLUMN api_key_hash TEXT");
+  }
 }

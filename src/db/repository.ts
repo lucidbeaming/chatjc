@@ -1,22 +1,31 @@
 import { v4 as uuidv4 } from "uuid";
+import { createHash } from "crypto";
 import { getDb } from "./client.js";
 import type { Message, Session } from "../types/index.js";
+
+// Hash API keys before storing to avoid persisting raw secrets in the database.
+// Sessions are bound to the key hash so only the original client can reuse them.
+export function hashApiKey(apiKey: string): string {
+  return createHash("sha256").update(apiKey).digest("hex");
+}
 
 export function createSession(
   source: string,
   ipAddress?: string | null,
+  apiKeyHash?: string | null,
 ): Session {
   const db = getDb();
   const id = uuidv4();
   const now = new Date().toISOString();
 
   db.prepare(
-    `INSERT INTO sessions (id, ip_address, source, created_at, last_active_at)
-     VALUES (?, ?, ?, ?, ?)`,
-  ).run(id, ipAddress ?? null, source, now, now);
+    `INSERT INTO sessions (id, api_key_hash, ip_address, source, created_at, last_active_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  ).run(id, apiKeyHash ?? null, ipAddress ?? null, source, now, now);
 
   return {
     id,
+    api_key_hash: apiKeyHash ?? null,
     ip_address: ipAddress ?? null,
     source,
     created_at: now,

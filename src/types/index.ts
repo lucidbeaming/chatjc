@@ -23,6 +23,7 @@ export interface Message {
 
 export interface Session {
   id: string;
+  api_key_hash: string | null;
   ip_address: string | null;
   source: string;
   created_at: string;
