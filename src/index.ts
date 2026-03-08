@@ -12,11 +12,8 @@ async function main(): Promise<void> {
   serve(
     { fetch: app.fetch, port: appConfig.PORT, hostname: appConfig.HOST },
     (info) => {
-      logger.info(
-        { port: info.port, host: appConfig.HOST },
-        "Server started"
-      );
-    }
+      logger.info({ port: info.port, host: appConfig.HOST }, "Server started");
+    },
   );
 }
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-chatjc is an MCP server powering a chatbot on joshuacurry.dev that answers questions about the developer's skills and job history. It's a REST API built with Hono + TypeScript (ESM), using LangChain with Mistral AI for RAG-based responses, and SQLite for interaction storage.
+chatjc is an MCP server powering a chatbot on a website that answers questions about a developer's skills and job history. It's a REST API built with Hono + TypeScript (ESM), using LangChain with Mistral AI for RAG-based responses, and SQLite for interaction storage.
 
 ## Commands
 

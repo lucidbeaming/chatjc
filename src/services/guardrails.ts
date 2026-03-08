@@ -19,6 +19,19 @@ const INJECTION_PATTERNS = [
   /new\s+instructions?\s*:/i,
 ];
 
+// Normalize unicode confusables and whitespace variations before
+// running injection detection to prevent bypass via lookalike characters
+// or irregular spacing (e.g. "ｉｇｎｏｒｅ", "ignore   all").
+function normalizeForDetection(input: string): string {
+  return (
+    input
+      // Normalize unicode to ASCII-compatible form (e.g. fullwidth → ASCII)
+      .normalize("NFKC")
+      // Collapse multiple whitespace characters into a single space
+      .replace(/\s+/g, " ")
+  );
+}
+
 export function validateInput(message: string): GuardrailResult {
   if (!message || message.trim().length === 0) {
     return { passed: false, reason: "Message cannot be empty" };
@@ -31,12 +44,18 @@ export function validateInput(message: string): GuardrailResult {
     };
   }
 
+  const normalized = normalizeForDetection(message);
+
   for (const pattern of INJECTION_PATTERNS) {
-    if (pattern.test(message)) {
-      logger.warn({ pattern: pattern.source }, "Prompt injection attempt detected");
+    if (pattern.test(normalized)) {
+      logger.warn(
+        { pattern: pattern.source },
+        "Prompt injection attempt detected",
+      );
       return {
         passed: false,
-        reason: "I can only answer questions about the developer's professional background.",
+        reason:
+          "I can only answer questions about the developer's professional background.",
       };
     }
   }
@@ -48,7 +67,7 @@ export function validateOutput(response: string): string {
   if (response.length > appConfig.MAX_RESPONSE_LENGTH) {
     logger.debug(
       { original: response.length, limit: appConfig.MAX_RESPONSE_LENGTH },
-      "Truncating response"
+      "Truncating response",
     );
     return response.slice(0, appConfig.MAX_RESPONSE_LENGTH).trimEnd() + "...";
   }
@@ -56,8 +75,11 @@ export function validateOutput(response: string): string {
 }
 
 export function sanitizeInput(message: string): string {
-  return message
-    .replace(/<[^>]*>/g, "")
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
-    .trim();
+  return (
+    message
+      .replace(/<[^>]*>/g, "")
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "")
+      .trim()
+  );
 }

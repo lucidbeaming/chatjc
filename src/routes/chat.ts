@@ -1,13 +1,14 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { v4 as uuidv4 } from "uuid";
+
 import {
   createSession,
   getSession,
   touchSession,
   addMessage,
   getSessionMessages,
+  hashApiKey,
 } from "../db/repository.js";
 import { queryRAG } from "../services/rag.js";
 import {
@@ -16,6 +17,13 @@ import {
   sanitizeInput,
 } from "../services/guardrails.js";
 import { logger } from "../logger/index.js";
+
+// Privacy: message content is only logged in non-production environments.
+// In production, only metadata (session ID, message length) is logged.
+// Full message content is always persisted to SQLite for session continuity
+// regardless of environment. The chat CLI script logs messages locally
+// via console output, independent of server-side logging.
+const isProduction = process.env.NODE_ENV === "production";
 
 const chatRequestSchema = z.object({
   session_id: z.string().uuid().optional(),
@@ -32,12 +40,24 @@ chat.post("/", zValidator("json", chatRequestSchema), async (c) => {
     c.req.header("x-real-ip") ??
     null;
 
+  // Validate raw input first to prevent bypassing injection detection
+  // via HTML tags or control characters that sanitization would strip
+  const rawCheck = validateInput(body.message);
+  if (!rawCheck.passed) {
+    return c.json({ error: rawCheck.reason }, 400);
+  }
+
   const sanitized = sanitizeInput(body.message);
 
-  const inputCheck = validateInput(sanitized);
-  if (!inputCheck.passed) {
-    return c.json({ error: inputCheck.reason }, 400);
+  const sanitizedCheck = validateInput(sanitized);
+  if (!sanitizedCheck.passed) {
+    return c.json({ error: sanitizedCheck.reason }, 400);
   }
+
+  // Bind sessions to API key hash to prevent session enumeration/hijacking.
+  // Only the client that created a session can reuse it.
+  const apiKey = c.req.header("x-api-key") ?? "";
+  const keyHash = hashApiKey(apiKey);
 
   let sessionId = body.session_id;
 
@@ -46,9 +66,12 @@ chat.post("/", zValidator("json", chatRequestSchema), async (c) => {
     if (!existing) {
       return c.json({ error: "Invalid session_id" }, 400);
     }
+    if (existing.api_key_hash && existing.api_key_hash !== keyHash) {
+      return c.json({ error: "Invalid session_id" }, 403);
+    }
     touchSession(sessionId);
   } else {
-    const session = createSession(body.source, ipAddress);
+    const session = createSession(body.source, ipAddress, keyHash);
     sessionId = session.id;
   }
 
@@ -62,7 +85,21 @@ chat.post("/", zValidator("json", chatRequestSchema), async (c) => {
 
     addMessage(sessionId, "assistant", response, body.source);
 
-    logger.info({ sessionId, inputLength: sanitized.length }, "Chat response generated");
+    if (isProduction) {
+      logger.info(
+        {
+          sessionId,
+          inputLength: sanitized.length,
+          responseLength: response.length,
+        },
+        "Chat response generated",
+      );
+    } else {
+      logger.info(
+        { sessionId, message: sanitized, response },
+        "Chat response generated",
+      );
+    }
 
     return c.json({
       session_id: sessionId,
@@ -70,6 +107,7 @@ chat.post("/", zValidator("json", chatRequestSchema), async (c) => {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
+    // Privacy: never log user message content in error output
     logger.error({ error, sessionId }, "RAG query failed");
     return c.json({ error: "Failed to generate response" }, 500);
   }
