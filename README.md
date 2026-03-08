@@ -197,4 +197,4 @@ Tests run entirely locally with mocked LLM calls — no API keys needed. The tes
 
 ## License
 
-ISC
+Apache 2.0
