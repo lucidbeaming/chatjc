@@ -1,9 +1,9 @@
 {
   "name": "chatjc",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "MCP for chatbot about a developer's work history and context",
-  "license": "ISC",
-  "author": "",
+  "license": "Apache-2.0",
+  "author": "Joshua Curry (https://github.com/lucidbeaming)",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
