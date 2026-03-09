@@ -33,12 +33,6 @@ app.doc("/api/doc", {
     description:
       "REST API for a RAG-powered chatbot that answers questions about a developer's skills and job history.",
   },
-  servers: [
-    {
-      url: "http://localhost:3000",
-      description: "Local development",
-    },
-  ],
   security: [{ ApiKeyAuth: [] }],
 });
 

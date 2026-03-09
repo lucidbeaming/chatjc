@@ -7,7 +7,7 @@ const envSchema = z.object({
   MISTRAL_API_KEY: z.string().min(1, "MISTRAL_API_KEY is required"),
   API_KEY: z.string().min(1, "API_KEY is required"),
   PORT: z.coerce.number().default(3000),
-  HOST: z.string().default("0.0.0.0"),
+  HOST: z.string().default("127.0.0.1"),
   DB_PATH: z.string().default("./data/chatjc.db"),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   CORS_ORIGIN: z.string().default("http://localhost:3000"),

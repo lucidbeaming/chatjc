@@ -29,6 +29,7 @@ const chatRequestSchema = z
     message: z.string().min(1),
     source: z.enum(["web_component", "api"]).default("api"),
   })
+  .strict()
   .openapi("ChatRequest");
 
 const chatResponseSchema = z
