@@ -4,7 +4,7 @@ import type { Context, Next } from "hono";
 import { appConfig } from "../config/index.js";
 
 export const corsMiddleware = cors({
-  origin: appConfig.CORS_ORIGIN,
+  origin: (origin) => (origin === appConfig.CORS_ORIGIN ? origin : ""),
   allowMethods: ["GET", "POST", "OPTIONS"],
   allowHeaders: ["Content-Type", "x-api-key"],
   maxAge: 86400,

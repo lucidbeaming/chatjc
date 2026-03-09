@@ -1,6 +1,4 @@
-import { Hono } from "hono";
-import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 
 import {
   createSession,
@@ -25,15 +23,103 @@ import { logger } from "../logger/index.js";
 // via console output, independent of server-side logging.
 const isProduction = process.env.NODE_ENV === "production";
 
-const chatRequestSchema = z.object({
-  session_id: z.string().uuid().optional(),
-  message: z.string().min(1),
-  source: z.enum(["web_component", "api"]).default("api"),
+const chatRequestSchema = z
+  .object({
+    session_id: z.string().uuid().optional(),
+    message: z.string().min(1),
+    source: z.enum(["web_component", "api"]).default("api"),
+  })
+  .strict()
+  .openapi("ChatRequest");
+
+const chatResponseSchema = z
+  .object({
+    session_id: z.string().uuid(),
+    response: z.string(),
+    timestamp: z.string().datetime(),
+  })
+  .openapi("ChatResponse");
+
+const errorSchema = z
+  .object({
+    error: z.string(),
+  })
+  .openapi("ErrorResponse");
+
+const chatRoute = createRoute({
+  method: "post",
+  path: "/",
+  tags: ["Chat"],
+  summary: "Send a chat message",
+  description:
+    "Send a message to the chatbot and receive a RAG-powered response. Optionally include a session_id to continue a conversation.",
+  security: [{ ApiKeyAuth: [] }],
+  request: {
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: chatRequestSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Chat response generated successfully",
+      content: {
+        "application/json": {
+          schema: chatResponseSchema,
+        },
+      },
+    },
+    400: {
+      description:
+        "Invalid input (empty, too long, or prompt injection detected)",
+      content: {
+        "application/json": {
+          schema: errorSchema,
+        },
+      },
+    },
+    401: {
+      description: "Missing or invalid API key",
+      content: {
+        "application/json": {
+          schema: errorSchema,
+        },
+      },
+    },
+    403: {
+      description: "Session does not belong to the provided API key",
+      content: {
+        "application/json": {
+          schema: errorSchema,
+        },
+      },
+    },
+    429: {
+      description: "Rate limit exceeded",
+      content: {
+        "application/json": {
+          schema: errorSchema,
+        },
+      },
+    },
+    500: {
+      description: "Internal server error during response generation",
+      content: {
+        "application/json": {
+          schema: errorSchema,
+        },
+      },
+    },
+  },
 });
 
-const chat = new Hono();
+const chat = new OpenAPIHono();
 
-chat.post("/", zValidator("json", chatRequestSchema), async (c) => {
+chat.openapi(chatRoute, async (c) => {
   const body = c.req.valid("json");
   const ipAddress =
     c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ??
@@ -44,14 +130,14 @@ chat.post("/", zValidator("json", chatRequestSchema), async (c) => {
   // via HTML tags or control characters that sanitization would strip
   const rawCheck = validateInput(body.message);
   if (!rawCheck.passed) {
-    return c.json({ error: rawCheck.reason }, 400);
+    return c.json({ error: rawCheck.reason! }, 400);
   }
 
   const sanitized = sanitizeInput(body.message);
 
   const sanitizedCheck = validateInput(sanitized);
   if (!sanitizedCheck.passed) {
-    return c.json({ error: sanitizedCheck.reason }, 400);
+    return c.json({ error: sanitizedCheck.reason! }, 400);
   }
 
   // Bind sessions to API key hash to prevent session enumeration/hijacking.
@@ -101,11 +187,14 @@ chat.post("/", zValidator("json", chatRequestSchema), async (c) => {
       );
     }
 
-    return c.json({
-      session_id: sessionId,
-      response,
-      timestamp: new Date().toISOString(),
-    });
+    return c.json(
+      {
+        session_id: sessionId,
+        response,
+        timestamp: new Date().toISOString(),
+      },
+      200,
+    );
   } catch (error) {
     // Privacy: never log user message content in error output
     logger.error({ error, sessionId }, "RAG query failed");
