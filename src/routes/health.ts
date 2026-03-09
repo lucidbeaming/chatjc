@@ -1,8 +1,10 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
-const require = createRequire(import.meta.url);
-const { version } = require("../../package.json") as { version: string };
+const { version } = JSON.parse(
+  readFileSync(join(process.cwd(), "package.json"), "utf-8"),
+) as { version: string };
 
 const healthResponseSchema = z
   .object({
