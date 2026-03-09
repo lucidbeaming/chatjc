@@ -21,6 +21,8 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.19.11",
+    "@hono/swagger-ui": "^0.6.0",
+    "@hono/zod-openapi": "^1.2.2",
     "@hono/zod-validator": "^0.7.6",
     "@langchain/core": "^1.1.31",
     "@langchain/mistralai": "^1.0.7",
