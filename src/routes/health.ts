@@ -35,7 +35,10 @@ const healthRoute = createRoute({
 const health = new OpenAPIHono();
 
 health.openapi(healthRoute, (c) => {
-  return c.json({ status: "ok", version, timestamp: new Date().toISOString() }, 200);
+  return c.json(
+    { status: "ok", version, timestamp: new Date().toISOString() },
+    200,
+  );
 });
 
 export { health };
