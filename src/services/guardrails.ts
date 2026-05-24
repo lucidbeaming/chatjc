@@ -65,11 +65,14 @@ export function validateInput(message: string): GuardrailResult {
 
 export function validateOutput(response: string): string {
   if (response.length > appConfig.MAX_RESPONSE_LENGTH) {
+    const slice = response.slice(0, appConfig.MAX_RESPONSE_LENGTH);
+    const lastParagraph = slice.lastIndexOf("\n\n");
+    const cutPoint = lastParagraph > 0 ? lastParagraph : slice.length;
     logger.debug(
-      { original: response.length, limit: appConfig.MAX_RESPONSE_LENGTH },
+      { original: response.length, limit: appConfig.MAX_RESPONSE_LENGTH, cutPoint },
       "Truncating response",
     );
-    return response.slice(0, appConfig.MAX_RESPONSE_LENGTH).trimEnd() + "...";
+    return response.slice(0, cutPoint).trimEnd() + "...";
   }
   return response;
 }
