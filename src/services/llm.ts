@@ -10,7 +10,7 @@ export function getChatModel(): ChatMistralAI {
       model: appConfig.MISTRAL_CHAT_MODEL,
       apiKey: appConfig.MISTRAL_API_KEY,
       temperature: 0.3,
-      maxTokens: appConfig.MAX_RESPONSE_LENGTH,
+      maxTokens: appConfig.MAX_RESPONSE_TOKENS,
     });
   }
   return chatModel;
