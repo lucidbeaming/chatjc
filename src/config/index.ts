@@ -14,7 +14,7 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().default(20),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60000),
   MAX_INPUT_LENGTH: z.coerce.number().default(500),
-  MAX_RESPONSE_LENGTH: z.coerce.number().default(1000),
+  MAX_RESPONSE_LENGTH: z.coerce.number().default(2000),
   MISTRAL_CHAT_MODEL: z.string().default("mistral-small-latest"),
   MISTRAL_EMBED_MODEL: z.string().default("mistral-embed"),
   CONTEXT_DIR: z.string().default("./context/mock"),
