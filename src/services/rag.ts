@@ -11,7 +11,7 @@ import {
 import { HumanMessage, AIMessage } from "@langchain/core/messages";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { RunnableSequence } from "@langchain/core/runnables";
-import { getChatModel, getEmbeddings } from "./llm.js";
+import { getChatModel, getEmbeddings, getOpenAIClient } from "./llm.js";
 import { appConfig } from "../config/index.js";
 import { logger } from "../logger/index.js";
 import type { Message } from "../types/index.js";
@@ -42,8 +42,12 @@ class InMemoryVectorStore extends VectorStore {
   async addDocuments(documents: Document[]): Promise<void> {
     const texts = documents.map((d) => d.pageContent);
     const embeddings = await this.embeddings.embedDocuments(texts);
+    await this.addVectors(embeddings, documents);
+  }
+
+  async addVectors(vectors: number[][], documents: Document[]): Promise<void> {
     this.documents.push(...documents);
-    this.vectors.push(...embeddings);
+    this.vectors.push(...vectors);
   }
 
   async similaritySearchVectorWithScore(
@@ -83,6 +87,7 @@ function cosineSimilarity(a: number[], b: number[]): number {
 
 let chain: RunnableSequence | null = null;
 let retriever: ReturnType<VectorStore["asRetriever"]> | null = null;
+let useResponsesAPI = false;
 
 function loadMarkdownFiles(contextDir: string): string[] {
   const files = readdirSync(contextDir).filter((f) => f.endsWith(".md"));
@@ -127,38 +132,46 @@ export async function initializeRAG(contextDir?: string): Promise<void> {
 
   retriever = vectorStore.asRetriever({ k: appConfig.RAG_TOP_K });
 
-  const prompt = ChatPromptTemplate.fromMessages([
-    ["system", SYSTEM_PROMPT],
-    new MessagesPlaceholder("chat_history"),
-    ["human", "{input}"],
-  ]);
+  useResponsesAPI = appConfig.LLM_BACKEND === "openai-responses";
 
-  chain = RunnableSequence.from([
-    {
-      context: async (input: {
-        input: string;
-        chat_history: (HumanMessage | AIMessage)[];
-      }) => {
-        const docs = await retriever!.invoke(input.input);
-        return docs.map((d) => d.pageContent).join("\n\n");
+  if (!useResponsesAPI) {
+    const prompt = ChatPromptTemplate.fromMessages([
+      ["system", SYSTEM_PROMPT],
+      new MessagesPlaceholder("chat_history"),
+      ["human", "{input}"],
+    ]);
+
+    chain = RunnableSequence.from([
+      {
+        context: async (input: {
+          input: string;
+          chat_history: (HumanMessage | AIMessage)[];
+        }) => {
+          const docs = await retriever!.invoke(input.input);
+          return docs.map((d) => d.pageContent).join("\n\n");
+        },
+        input: (input: { input: string }) => input.input,
+        chat_history: (input: {
+          chat_history: (HumanMessage | AIMessage)[];
+        }) => input.chat_history,
       },
-      input: (input: { input: string }) => input.input,
-      chat_history: (input: { chat_history: (HumanMessage | AIMessage)[] }) =>
-        input.chat_history,
-    },
-    prompt,
-    getChatModel(),
-    new StringOutputParser(),
-  ]);
+      prompt,
+      getChatModel(),
+      new StringOutputParser(),
+    ]);
+  }
 
-  logger.info("RAG pipeline initialized");
+  logger.info(
+    { backend: appConfig.LLM_BACKEND },
+    "RAG pipeline initialized",
+  );
 }
 
 export async function queryRAG(
   question: string,
   history: Message[] = [],
 ): Promise<string> {
-  if (!chain) {
+  if (!retriever) {
     throw new Error("RAG not initialized. Call initializeRAG() first.");
   }
 
@@ -167,6 +180,15 @@ export async function queryRAG(
   const validHistory = history.filter(
     (msg) => msg.role === "user" || msg.role === "assistant",
   );
+
+  if (useResponsesAPI) {
+    return queryWithResponsesAPI(question, validHistory);
+  }
+
+  if (!chain) {
+    throw new Error("RAG not initialized. Call initializeRAG() first.");
+  }
+
   const chatHistory = validHistory.map((msg) =>
     msg.role === "user"
       ? new HumanMessage(msg.content)
@@ -177,4 +199,33 @@ export async function queryRAG(
     input: question,
     chat_history: chatHistory,
   });
+}
+
+async function queryWithResponsesAPI(
+  question: string,
+  validHistory: Message[],
+): Promise<string> {
+  const docs = await retriever!.invoke(question);
+  const context = docs.map((d) => d.pageContent).join("\n\n");
+
+  const input = [
+    {
+      role: "system" as const,
+      content: SYSTEM_PROMPT.replace("{context}", context),
+    },
+    ...validHistory.map((msg) => ({
+      role: msg.role === "user" ? ("user" as const) : ("assistant" as const),
+      content: msg.content,
+    })),
+    { role: "user" as const, content: question },
+  ];
+
+  const response = await getOpenAIClient().responses.create({
+    model: appConfig.OPENAI_CHAT_MODEL,
+    input,
+    temperature: 0.3,
+    max_output_tokens: appConfig.MAX_RESPONSE_TOKENS,
+  });
+
+  return response.output_text;
 }
