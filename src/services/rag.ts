@@ -108,6 +108,70 @@ function loadMarkdownFiles(contextDir: string): string[] {
   });
 }
 
+export interface MarkdownSection {
+  headings: string[];
+  body: string;
+}
+
+// Split markdown into sections at each heading, tracking the heading path
+// (e.g. ["Experience", "Senior AI Developer", "Walmart"]) so chunks cut from
+// a section can carry the context of where they came from.
+export function splitMarkdownSections(markdown: string): MarkdownSection[] {
+  const sections: MarkdownSection[] = [];
+  const path: string[] = [];
+  let body: string[] = [];
+  let inFence = false;
+
+  const flush = () => {
+    const text = body.join("\n").trim();
+    if (text) sections.push({ headings: path.filter(Boolean), body: text });
+    body = [];
+  };
+
+  for (const line of markdown.split("\n")) {
+    if (/^\s*(```|~~~)/.test(line)) inFence = !inFence;
+    const heading = inFence ? null : /^(#{1,6})\s+(.+)$/.exec(line);
+    if (heading) {
+      flush();
+      const level = heading[1].length;
+      path.length = level - 1;
+      path[level - 1] = heading[2].trim();
+    } else {
+      body.push(line);
+    }
+  }
+  flush();
+
+  return sections;
+}
+
+// Chunk each section separately and prefix every chunk with its heading
+// path, so a chunk from the middle of a job entry still names the role.
+export async function buildChunks(documents: string[]): Promise<Document[]> {
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: appConfig.RAG_CHUNK_SIZE,
+    chunkOverlap: appConfig.RAG_CHUNK_OVERLAP,
+    separators: ["\n\n", "\n", " ", ""],
+  });
+
+  const chunks: Document[] = [];
+  for (const markdown of documents) {
+    for (const { headings, body } of splitMarkdownSections(markdown)) {
+      const breadcrumb = headings.join(" > ");
+      for (const piece of await splitter.splitText(body)) {
+        chunks.push(
+          new Document({
+            pageContent: breadcrumb ? `${breadcrumb}\n${piece}` : piece,
+            metadata: { headings },
+          }),
+        );
+      }
+    }
+  }
+
+  return chunks;
+}
+
 export async function initializeRAG(contextDir?: string): Promise<void> {
   const dir = contextDir ?? resolve(process.cwd(), appConfig.CONTEXT_DIR);
   const documents = loadMarkdownFiles(dir);
@@ -116,13 +180,7 @@ export async function initializeRAG(contextDir?: string): Promise<void> {
     logger.warn("No context files found. RAG will have no context.");
   }
 
-  const splitter = new RecursiveCharacterTextSplitter({
-    chunkSize: appConfig.RAG_CHUNK_SIZE,
-    chunkOverlap: appConfig.RAG_CHUNK_OVERLAP,
-    separators: ["\n## ", "\n### ", "\n#### ", "\n\n", "\n", " ", ""],
-  });
-
-  const docs = await splitter.createDocuments(documents);
+  const docs = await buildChunks(documents);
   logger.info({ chunks: docs.length }, "Documents split into chunks");
 
   const vectorStore = await InMemoryVectorStore.fromDocuments(
