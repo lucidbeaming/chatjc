@@ -209,9 +209,8 @@ export async function initializeRAG(contextDir?: string): Promise<void> {
           return docs.map((d) => d.pageContent).join("\n\n");
         },
         input: (input: { input: string }) => input.input,
-        chat_history: (input: {
-          chat_history: (HumanMessage | AIMessage)[];
-        }) => input.chat_history,
+        chat_history: (input: { chat_history: (HumanMessage | AIMessage)[] }) =>
+          input.chat_history,
       },
       prompt,
       getChatModel(),
@@ -219,10 +218,7 @@ export async function initializeRAG(contextDir?: string): Promise<void> {
     ]);
   }
 
-  logger.info(
-    { backend: appConfig.LLM_BACKEND },
-    "RAG pipeline initialized",
-  );
+  logger.info({ backend: appConfig.LLM_BACKEND }, "RAG pipeline initialized");
 }
 
 export async function queryRAG(

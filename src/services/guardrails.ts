@@ -69,7 +69,11 @@ export function validateOutput(response: string): string {
     const lastParagraph = slice.lastIndexOf("\n\n");
     const cutPoint = lastParagraph > 0 ? lastParagraph : slice.length;
     logger.debug(
-      { original: response.length, limit: appConfig.MAX_RESPONSE_LENGTH, cutPoint },
+      {
+        original: response.length,
+        limit: appConfig.MAX_RESPONSE_LENGTH,
+        cutPoint,
+      },
       "Truncating response",
     );
     return response.slice(0, cutPoint).trimEnd() + "...";

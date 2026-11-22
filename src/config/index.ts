@@ -35,7 +35,8 @@ const envSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["MISTRAL_API_KEY"],
-        message: "MISTRAL_API_KEY is required when LLM_BACKEND=mistral-langchain",
+        message:
+          "MISTRAL_API_KEY is required when LLM_BACKEND=mistral-langchain",
       });
     }
     if (data.LLM_BACKEND !== "mistral-langchain" && !data.OPENAI_API_KEY) {
