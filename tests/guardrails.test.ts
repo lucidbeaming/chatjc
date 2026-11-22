@@ -68,9 +68,9 @@ describe("Guardrails", () => {
     });
 
     it("should truncate responses exceeding limit", () => {
-      const longResponse = "a".repeat(1500);
+      const longResponse = "a".repeat(2500);
       const result = validateOutput(longResponse);
-      expect(result.length).toBeLessThanOrEqual(1003); // 1000 + "..."
+      expect(result.length).toBeLessThanOrEqual(2003); // MAX_RESPONSE_LENGTH default 2000 + "..."
       expect(result.endsWith("...")).toBe(true);
     });
   });

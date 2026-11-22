@@ -36,8 +36,7 @@ export function createSession(
 export function getSession(sessionId: string): Session | undefined {
   const db = getDb();
   return db.prepare("SELECT * FROM sessions WHERE id = ?").get(sessionId) as
-    | Session
-    | undefined;
+    Session | undefined;
 }
 
 export function touchSession(sessionId: string): void {
