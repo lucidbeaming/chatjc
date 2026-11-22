@@ -12,6 +12,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Source formatted with Prettier (#16)
 
 ### Fixed
+- Server no longer crashes on first start when the `data/` folder for the SQLite DB doesn't exist (#18)
 - Truncation test matches the 2000-character response limit (#16)
 
 ### Security

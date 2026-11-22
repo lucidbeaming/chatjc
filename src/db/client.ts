@@ -1,3 +1,5 @@
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import Database from "better-sqlite3";
 import { appConfig } from "../config/index.js";
 import { logger } from "../logger/index.js";
@@ -14,6 +16,8 @@ export function getDb(): Database.Database {
 
 export function initDb(dbPath?: string): Database.Database {
   const path = dbPath ?? appConfig.DB_PATH;
+  // better-sqlite3 creates the file but not its folder, and data/ is gitignored.
+  if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   db = new Database(path);
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
