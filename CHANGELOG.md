@@ -17,6 +17,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Source formatted with Prettier (#16)
 
 ### Fixed
+- The OpenAPI document reports the package version instead of a hard-coded `1.1.2` (#28)
 - README configuration table matches `src/config`: `MAX_RESPONSE_LENGTH` is 2000, and the 15 missing variables are listed (#26)
 - `npm run chat` talks to the local server on `PORT` (default 3000) instead of a hard-coded port 9003; `API_URL` still overrides it (#24)
 - `.gitignore` aligned with the portfolio's common block: Windows thumbnails, Sublime workspaces, shared `.vscode/extensions.json` (#22)
