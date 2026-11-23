@@ -4,6 +4,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+- README: sample response, requirements, LLM backends, How it works, `/api/doc` and `/api/docs`, related projects (#26)
+
 ### Changed
 - Relicensed from Apache-2.0 to MIT; earlier releases keep Apache-2.0 (#20)
 - Package metadata: `repository`, `bugs` and `homepage` in `package.json` (#20)
@@ -14,6 +17,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - Source formatted with Prettier (#16)
 
 ### Fixed
+- README configuration table matches `src/config`: `MAX_RESPONSE_LENGTH` is 2000, and the 15 missing variables are listed (#26)
 - `npm run chat` talks to the local server on `PORT` (default 3000) instead of a hard-coded port 9003; `API_URL` still overrides it (#24)
 - `.gitignore` aligned with the portfolio's common block: Windows thumbnails, Sublime workspaces, shared `.vscode/extensions.json` (#22)
 - Server no longer crashes on first start when the `data/` folder for the SQLite DB doesn't exist (#18)
