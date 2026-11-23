@@ -8,7 +8,7 @@ import {
 import { apiKeyAuth } from "./middleware/apiKeyAuth.js";
 import { rateLimiter } from "./middleware/rateLimiter.js";
 import { requestLogger } from "./middleware/requestLogger.js";
-import { health } from "./routes/health.js";
+import { health, version } from "./routes/health.js";
 import { chat } from "./routes/chat.js";
 
 const app = new OpenAPIHono();
@@ -29,7 +29,7 @@ app.doc("/api/doc", {
   openapi: "3.1.0",
   info: {
     title: "chatjc API",
-    version: "1.1.2",
+    version,
     description:
       "REST API for a RAG-powered chatbot that answers questions about a developer's skills and job history.",
   },
