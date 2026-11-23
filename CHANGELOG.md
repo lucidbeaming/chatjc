@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-23
+
+Dependencies brought current (npm audit: 0, from 1 critical and 12 high), with Node 22+ now required. Fixes the crash on first start, the CLI's port and the OpenAPI version, and the README's configuration now matches the code.
+
 ### Added
 - README: sample response, requirements, LLM backends, How it works, `/api/doc` and `/api/docs`, related projects (#26)
 
@@ -30,3 +34,6 @@ All notable changes to this project are documented here. The format follows [Kee
 ## [1.1.4] - 2026-03-09
 
 See the [v1.1.4 release](https://github.com/lucidbeaming/chatjc/releases/tag/v1.1.4).
+
+[Unreleased]: https://github.com/lucidbeaming/chatjc/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/lucidbeaming/chatjc/compare/v1.1.4...v1.2.0
