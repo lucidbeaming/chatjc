@@ -3,7 +3,9 @@ import { config } from "dotenv";
 
 config();
 
-const BASE_URL = process.env.API_URL ?? "http://localhost:9003";
+// Defaults to the local server on PORT; set API_URL to talk to another host.
+const BASE_URL =
+  process.env.API_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
 const API_KEY = process.env.API_KEY;
 
 if (!API_KEY) {
