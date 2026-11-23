@@ -2,7 +2,7 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const { version } = JSON.parse(
+export const { version } = JSON.parse(
   readFileSync(join(process.cwd(), "package.json"), "utf-8"),
 ) as { version: string };
 
