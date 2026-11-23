@@ -197,4 +197,4 @@ Tests run entirely locally with mocked LLM calls — no API keys needed. The tes
 
 ## License
 
-Apache 2.0
+[MIT](LICENSE). Releases before this change were published under Apache-2.0, and those copies keep that license.
